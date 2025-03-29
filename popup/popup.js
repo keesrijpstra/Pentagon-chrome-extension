@@ -130,22 +130,61 @@ document.addEventListener('DOMContentLoaded', function() {
   /**
    * Prefill save password form with current page info
    */
-  function prefillSavePasswordForm() {
-    chrome.tabs.query({active: true, currentWindow: true}, function(tabs) {
+  // In popup.js
+  function sendMessageToActiveTab(message) {
+    return new Promise((resolve, reject) => {
+      chrome.tabs.query({active: true, currentWindow: true}, function(tabs) {
+        if (!tabs[0]) {
+          return reject(new Error("No active tab"));
+        }
+        
+        const activeTab = tabs[0];
+        
+        // Skip chrome:// URLs and other special pages
+        if (!activeTab.url.startsWith('http')) {
+          return reject(new Error("Not a regular web page"));
+        }
+        
+        try {
+          chrome.tabs.sendMessage(activeTab.id, message, function(response) {
+            if (chrome.runtime.lastError) {
+              return reject(new Error(chrome.runtime.lastError.message));
+            }
+            resolve(response);
+          });
+        } catch (error) {
+          reject(error);
+        }
+      });
+    });
+  }
+
+  // Then use it like this:
+  async function prefillSavePasswordForm() {
+    try {
+      const tabs = await new Promise(resolve => chrome.tabs.query({active: true, currentWindow: true}, resolve));
       const currentUrl = tabs[0].url;
       document.getElementById('site-url').value = currentUrl;
       document.getElementById('title').value = tabs[0].title || new URL(currentUrl).hostname;
       
-      // Try to get credentials from the page
-      chrome.tabs.sendMessage(tabs[0].id, {action: "getCredentials"}, function(response) {
-        if (response && response.username) {
-          document.getElementById('username').value = response.username;
+      // Only try to get credentials if we're on a valid webpage
+      if (currentUrl.startsWith('http')) {
+        try {
+          const credentials = await sendMessageToActiveTab({action: "getCredentials"});
+          if (credentials && credentials.username) {
+            document.getElementById('username').value = credentials.username;
+          }
+          if (credentials && credentials.password) {
+            document.getElementById('site-password').value = credentials.password;
+          }
+        } catch (error) {
+          console.log("Could not get credentials:", error.message);
+          // Continue without filling credentials
         }
-        if (response && response.password) {
-          document.getElementById('site-password').value = response.password;
-        }
-      });
-    });
+      }
+    } catch (error) {
+      console.error("Error in prefillSavePasswordForm:", error);
+    }
   }
   
   /**
