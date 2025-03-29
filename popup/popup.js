@@ -13,7 +13,7 @@ document.addEventListener('DOMContentLoaded', function() {
   const passwordsContainer = document.getElementById('passwords-container');
   
   // Configuration - replace with your Filament backend URL
-  const API_BASE_URL = 'http://185.77.96.90/api';
+  const API_BASE_URL = 'http://keezpentagon.online/api';
   
   // Check authentication status when the popup opens
   checkAuthStatus();
