@@ -1,0 +1,38 @@
+{
+    "manifest_version": 3,
+    "name": "Filament Password Manager",
+    "version": "1.0",
+    "description": "Save and manage passwords with your Filament PHP backend",
+    "permissions": [
+      "storage",
+      "tabs",
+      "activeTab",
+      "scripting",
+      "webRequest"
+    ],
+    "host_permissions": [
+      "https://185.77.96.90/api/*"
+    ],
+    "action": {
+      "default_popup": "popup/popup.html",
+      "default_icon": {
+        "16": "icons/icon16.png",
+        "48": "icons/icon48.png",
+        "128": "icons/icon128.png"
+      }
+    },
+    "background": {
+      "service_worker": "background.js"
+    },
+    "content_scripts": [
+      {
+        "matches": ["<all_urls>"],
+        "js": ["content/content.js"]
+      }
+    ],
+    "icons": {
+      "16": "icons/icon16.png",
+      "48": "icons/icon48.png",
+      "128": "icons/icon128.png"
+    }
+  }

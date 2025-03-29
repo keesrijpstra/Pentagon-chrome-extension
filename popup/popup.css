@@ -1,0 +1,119 @@
+body {
+    font-family: Arial, sans-serif;
+    width: 350px;
+    margin: 0;
+    padding: 0;
+  }
+  
+  .container {
+    padding: 15px;
+  }
+  
+  .header {
+    text-align: center;
+    border-bottom: 1px solid #ddd;
+    padding-bottom: 10px;
+    margin-bottom: 15px;
+  }
+  
+  .header h1 {
+    font-size: 18px;
+    margin: 0;
+    color: #333;
+  }
+  
+  .form-group {
+    margin-bottom: 10px;
+  }
+  
+  label {
+    display: block;
+    margin-bottom: 5px;
+    font-weight: bold;
+  }
+  
+  input, textarea {
+    width: 100%;
+    padding: 8px;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    box-sizing: border-box;
+  }
+  
+  button {
+    background-color: #4285f4;
+    color: white;
+    border: none;
+    padding: 8px 12px;
+    border-radius: 4px;
+    cursor: pointer;
+    margin-top: 5px;
+  }
+  
+  button:hover {
+    background-color: #3367d6;
+  }
+  
+  .hidden {
+    display: none;
+  }
+  
+  .error {
+    color: red;
+    margin-top: 10px;
+    font-size: 14px;
+  }
+  
+  #password-actions {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+  }
+  
+  .action-section {
+    margin-top: 15px;
+  }
+  
+  #passwords-container {
+    max-height: 300px;
+    overflow-y: auto;
+    margin-top: 10px;
+  }
+  
+  .password-item {
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    padding: 10px;
+    margin-bottom: 10px;
+  }
+  
+  .password-item h4 {
+    margin: 0 0 5px 0;
+  }
+  
+  .password-actions {
+    display: flex;
+    justify-content: space-between;
+    margin-top: 10px;
+  }
+  
+  .search-bar {
+    margin-bottom: 10px;
+  }
+  
+  #status-message {
+    margin-top: 15px;
+    padding: 8px;
+    border-radius: 4px;
+    text-align: center;
+  }
+  
+  .success {
+    background-color: #d4edda;
+    color: #155724;
+  }
+  
+  .error-message {
+    background-color: #f8d7da;
+    color: #721c24;
+  }
