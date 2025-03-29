@@ -1,6 +1,6 @@
 body {
   font-family: Arial, sans-serif;
-  width: 300px;
+  width: 320px;
   margin: 0;
   padding: 0;
 }
@@ -20,6 +20,22 @@ body {
   font-size: 18px;
   margin: 0;
   color: #333;
+}
+
+.section {
+  margin-bottom: 20px;
+}
+
+.section-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 15px;
+}
+
+.section-header h2 {
+  margin: 0;
+  font-size: 16px;
 }
 
 .form-group {
@@ -48,7 +64,6 @@ button {
   padding: 8px 12px;
   border-radius: 4px;
   cursor: pointer;
-  margin-top: 5px;
   width: 100%;
   font-size: 14px;
 }
@@ -57,12 +72,30 @@ button:hover {
   background-color: #3367d6;
 }
 
-#status-message {
+.small-button {
+  width: auto;
+  padding: 5px 10px;
+  font-size: 12px;
+}
+
+.hidden {
+  display: none;
+}
+
+.error-message {
+  color: #dc3545;
+  font-size: 12px;
+  margin-top: 5px;
+  margin-bottom: 10px;
+}
+
+.status-message {
   margin-top: 15px;
   padding: 8px;
   border-radius: 4px;
   text-align: center;
   font-size: 14px;
+  display: none;
 }
 
 .success {
@@ -70,7 +103,7 @@ button:hover {
   color: #155724;
 }
 
-.error-message {
+.error {
   background-color: #f8d7da;
   color: #721c24;
 }
