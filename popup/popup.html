@@ -1,77 +1,34 @@
 <!DOCTYPE html>
 <html>
 <head>
-  <title>Filament Password Manager</title>
+  <title>Password Saver</title>
   <link rel="stylesheet" href="popup.css">
 </head>
 <body>
   <div class="container">
     <div class="header">
-      <h1>Filament Password Manager</h1>
+      <h1>Save Password</h1>
     </div>
     
-    <div id="auth-status">
-      <div id="logged-out" class="auth-section">
-        <h2>Login to Your Account</h2>
-        <form id="login-form">
-          <div class="form-group">
-            <label for="email">Email:</label>
-            <input type="email" id="email" required>
-          </div>
-          <div class="form-group">
-            <label for="password">Master Password:</label>
-            <input type="password" id="password" required>
-          </div>
-          <button type="submit" id="login-btn">Login</button>
-        </form>
-        <div id="login-error" class="error"></div>
+    <form id="save-password-form">
+      <div class="form-group">
+        <label for="site-url">Website URL:</label>
+        <input type="text" id="site-url" required>
       </div>
-      
-      <div id="logged-in" class="auth-section hidden">
-        <h2>Password Manager</h2>
-        
-        <div id="password-actions">
-          <button id="save-password-btn">Save Current Password</button>
-          <button id="view-passwords-btn">View Saved Passwords</button>
-          <button id="logout-btn">Logout</button>
-        </div>
-        
-        <div id="save-form" class="action-section hidden">
-          <h3>Save Password</h3>
-          <form id="save-password-form">
-            <div class="form-group">
-              <label for="site-url">Website URL:</label>
-              <input type="text" id="site-url" required>
-            </div>
-            <div class="form-group">
-              <label for="username">Username/Email:</label>
-              <input type="text" id="username" required>
-            </div>
-            <div class="form-group">
-              <label for="site-password">Password:</label>
-              <input type="password" id="site-password" required>
-            </div>
-            <div class="form-group">
-              <label for="notes">Notes:</label>
-              <textarea id="notes"></textarea>
-            </div>
-            <button type="submit">Save</button>
-            <button type="button" id="cancel-save">Cancel</button>
-          </form>
-        </div>
-        
-        <div id="passwords-list" class="action-section hidden">
-          <h3>Saved Passwords</h3>
-          <div class="search-bar">
-            <input type="text" id="search-passwords" placeholder="Search...">
-          </div>
-          <div id="passwords-container">
-            <!-- Passwords will be populated here by JavaScript -->
-          </div>
-          <button id="back-btn">Back</button>
-        </div>
+      <div class="form-group">
+        <label for="title">Title:</label>
+        <input type="text" id="title" placeholder="e.g. My Bank Account">
       </div>
-    </div>
+      <div class="form-group">
+        <label for="username">Username/Email:</label>
+        <input type="text" id="username" required>
+      </div>
+      <div class="form-group">
+        <label for="site-password">Password:</label>
+        <input type="password" id="site-password" required>
+      </div>
+      <button type="submit">Save Password</button>
+    </form>
     
     <div id="status-message"></div>
   </div>
