@@ -130,7 +130,6 @@ document.addEventListener('DOMContentLoaded', function() {
   /**
    * Prefill save password form with current page info
    */
-  // In popup.js
   function sendMessageToActiveTab(message) {
     return new Promise((resolve, reject) => {
       chrome.tabs.query({active: true, currentWindow: true}, function(tabs) {
@@ -140,7 +139,6 @@ document.addEventListener('DOMContentLoaded', function() {
         
         const activeTab = tabs[0];
         
-        // Skip chrome:// URLs and other special pages
         if (!activeTab.url.startsWith('http')) {
           return reject(new Error("Not a regular web page"));
         }
@@ -159,7 +157,6 @@ document.addEventListener('DOMContentLoaded', function() {
     });
   }
 
-  // Then use it like this:
   async function prefillSavePasswordForm() {
     try {
       const tabs = await new Promise(resolve => chrome.tabs.query({active: true, currentWindow: true}, resolve));
@@ -167,7 +164,6 @@ document.addEventListener('DOMContentLoaded', function() {
       document.getElementById('site-url').value = currentUrl;
       document.getElementById('title').value = tabs[0].title || new URL(currentUrl).hostname;
       
-      // Only try to get credentials if we're on a valid webpage
       if (currentUrl.startsWith('http')) {
         try {
           const credentials = await sendMessageToActiveTab({action: "getCredentials"});
@@ -179,7 +175,6 @@ document.addEventListener('DOMContentLoaded', function() {
           }
         } catch (error) {
           console.log("Could not get credentials:", error.message);
-          // Continue without filling credentials
         }
       }
     } catch (error) {
@@ -187,14 +182,10 @@ document.addEventListener('DOMContentLoaded', function() {
     }
   }
   
-  /**
-   * Handle save password form submission
-   */
   function handleSavePassword(e) {
     e.preventDefault();
     
     chrome.storage.local.get(['authToken', 'user_id'], function(result) {
-      // Verify we have authentication
       if (!result.authToken || !result.user_id) {
         showStatusMessage('You must be logged in to save passwords', 'error');
         return;
@@ -208,7 +199,6 @@ document.addEventListener('DOMContentLoaded', function() {
       
       showStatusMessage('Saving password...', '');
       
-      // Call API to save password
       fetch(`${API_BASE_URL}/store-password`, {
         method: 'POST',
         headers: {
@@ -237,7 +227,6 @@ document.addEventListener('DOMContentLoaded', function() {
           showStatusMessage('Password saved successfully', 'success');
           savePasswordForm.reset();
           
-          // Refresh the form with current page info
           setTimeout(prefillSavePasswordForm, 1500);
         } else {
           showStatusMessage(data.message || 'Error saving password', 'error');
@@ -246,13 +235,11 @@ document.addEventListener('DOMContentLoaded', function() {
       .catch(error => {
         console.error('Error saving password:', error);
         
-        // Check if error is due to expired token
         if (error.message && (
             error.message.includes('Unauthenticated') || 
             error.message.includes('token') || 
             error.message.includes('expired'))
         ) {
-          // Token might be invalid, force re-login
           handleLogout();
           showStatusMessage('Your session has expired. Please login again.', 'error');
         } else {
@@ -262,15 +249,11 @@ document.addEventListener('DOMContentLoaded', function() {
     });
   }
   
-  /**
-   * Show status message in the password section
-   */
   function showStatusMessage(message, className) {
     passwordStatusMessage.textContent = message;
     passwordStatusMessage.className = 'status-message ' + (className || '');
     passwordStatusMessage.style.display = 'block';
     
-    // Clear success messages after 3 seconds
     if (className === 'success') {
       setTimeout(() => {
         passwordStatusMessage.style.display = 'none';
@@ -278,18 +261,15 @@ document.addEventListener('DOMContentLoaded', function() {
     }
   }
   
-  // Set up auto-logout after inactivity (e.g., 5 minutes)
   let inactivityTimeout;
   
   function resetInactivityTimer() {
     clearTimeout(inactivityTimeout);
-    inactivityTimeout = setTimeout(handleLogout, 5 * 60 * 1000); // 5 minutes
+    inactivityTimeout = setTimeout(handleLogout, 5 * 60 * 1000);
   }
   
-  // Reset timer on user activity
   document.addEventListener('click', resetInactivityTimer);
   document.addEventListener('keypress', resetInactivityTimer);
   
-  // Start timer on page load
   resetInactivityTimer();
 });
