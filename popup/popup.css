@@ -1,6 +1,6 @@
 body {
   font-family: Arial, sans-serif;
-  width: 320px;
+  width: 350px;
   margin: 0;
   padding: 0;
 }
@@ -64,7 +64,6 @@ button {
   padding: 8px 12px;
   border-radius: 4px;
   cursor: pointer;
-  width: 100%;
   font-size: 14px;
 }
 
@@ -106,4 +105,142 @@ button:hover {
 .error {
   background-color: #f8d7da;
   color: #721c24;
+}
+
+/* Tab Styles */
+.tabs {
+  display: flex;
+  border-bottom: 1px solid #ddd;
+  margin-bottom: 15px;
+  position: relative;
+}
+
+.tab-button {
+  flex: 1;
+  background-color: #f8f9fa;
+  border: none;
+  padding: 10px;
+  cursor: pointer;
+  transition: background-color 0.3s;
+  border-radius: 4px 4px 0 0;
+  font-weight: normal;
+  color: #555;
+}
+
+.tab-button.active {
+  background-color: #fff;
+  border-bottom: 2px solid #4285f4;
+  font-weight: bold;
+  color: #4285f4;
+}
+
+.tab-button:hover {
+  background-color: #e9ecef;
+}
+
+.tab-content {
+  display: none;
+}
+
+.tab-content.active {
+  display: block;
+}
+
+.logout-button {
+  position: absolute;
+  right: 0;
+  top: 0;
+  background-color: transparent;
+  color: #dc3545;
+  font-size: 12px;
+  padding: 2px 5px;
+  margin: 2px;
+}
+
+.logout-button:hover {
+  background-color: #ffeeee;
+}
+
+/* Password List Styles */
+.search-container {
+  margin-bottom: 15px;
+}
+
+#password-search {
+  width: 100%;
+  padding: 8px;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  box-sizing: border-box;
+}
+
+#passwords-container {
+  max-height: 300px;
+  overflow-y: auto;
+}
+
+.loading-message {
+  text-align: center;
+  color: #666;
+  padding: 20px 0;
+}
+
+.password-item {
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  margin-bottom: 10px;
+  padding: 10px;
+  background-color: #f9f9f9;
+}
+
+.password-item:hover {
+  background-color: #f1f1f1;
+}
+
+.password-title {
+  font-weight: bold;
+  margin-bottom: 5px;
+  color: #333;
+}
+
+.password-url {
+  color: #666;
+  font-size: 12px;
+  margin-bottom: 8px;
+  word-break: break-all;
+}
+
+.password-username {
+  margin-bottom: 8px;
+}
+
+.password-actions {
+  display: flex;
+  justify-content: space-between;
+  margin-top: 10px;
+}
+
+.password-action-btn {
+  flex: 1;
+  margin: 0 2px;
+  padding: 5px;
+  font-size: 12px;
+}
+
+.no-passwords {
+  text-align: center;
+  color: #666;
+  padding: 20px 0;
+}
+
+.empty-state {
+  text-align: center;
+  padding: 20px 0;
+  color: #666;
+}
+
+.empty-state-icon {
+  font-size: 40px;
+  margin-bottom: 10px;
+  color: #ddd;
 }

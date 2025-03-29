@@ -7,6 +7,10 @@ document.addEventListener('DOMContentLoaded', function() {
   const savePasswordForm = document.getElementById('save-password-form');
   const logoutBtn = document.getElementById('logout-btn');
   const passwordStatusMessage = document.getElementById('password-status-message');
+  const tabButtons = document.querySelectorAll('.tab-button');
+  const tabContents = document.querySelectorAll('.tab-content');
+  const passwordSearch = document.getElementById('password-search');
+  const passwordsContainer = document.getElementById('passwords-container');
   
   // Configuration - replace with your Filament backend URL
   const API_BASE_URL = 'http://185.77.96.90/api';
@@ -18,6 +22,31 @@ document.addEventListener('DOMContentLoaded', function() {
   loginForm.addEventListener('submit', handleLogin);
   savePasswordForm.addEventListener('submit', handleSavePassword);
   logoutBtn.addEventListener('click', handleLogout);
+  
+  // Tab switching
+  tabButtons.forEach(button => {
+    button.addEventListener('click', function() {
+      // Remove active class from all buttons and tabs
+      tabButtons.forEach(btn => btn.classList.remove('active'));
+      tabContents.forEach(content => content.classList.remove('active'));
+      
+      // Add active class to clicked button and corresponding tab
+      this.classList.add('active');
+      const tabId = this.getAttribute('data-tab');
+      document.getElementById(tabId).classList.add('active');
+      
+      // If switching to password list tab, load passwords
+      if (tabId === 'list-tab') {
+        loadPasswordsList();
+      }
+    });
+  });
+  
+  // Search functionality
+  passwordSearch.addEventListener('input', function() {
+    const searchTerm = this.value.toLowerCase();
+    filterPasswords(searchTerm);
+  });
   
   /**
    * Check authentication status
@@ -125,67 +154,61 @@ document.addEventListener('DOMContentLoaded', function() {
   function showPasswordManager() {
     loginSection.classList.add('hidden');
     passwordManagerSection.classList.remove('hidden');
+    
+    // Default to save tab
+    document.querySelector('.tab-button[data-tab="save-tab"]').classList.add('active');
+    document.getElementById('save-tab').classList.add('active');
+    document.querySelector('.tab-button[data-tab="list-tab"]').classList.remove('active');
+    document.getElementById('list-tab').classList.remove('active');
   }
   
   /**
    * Prefill save password form with current page info
    */
-  function sendMessageToActiveTab(message) {
-    return new Promise((resolve, reject) => {
-      chrome.tabs.query({active: true, currentWindow: true}, function(tabs) {
-        if (!tabs[0]) {
-          return reject(new Error("No active tab"));
-        }
-        
-        const activeTab = tabs[0];
-        
-        if (!activeTab.url.startsWith('http')) {
-          return reject(new Error("Not a regular web page"));
-        }
-        
-        try {
-          chrome.tabs.sendMessage(activeTab.id, message, function(response) {
-            if (chrome.runtime.lastError) {
-              return reject(new Error(chrome.runtime.lastError.message));
-            }
-            resolve(response);
-          });
-        } catch (error) {
-          reject(error);
-        }
-      });
-    });
-  }
-
-  async function prefillSavePasswordForm() {
-    try {
-      const tabs = await new Promise(resolve => chrome.tabs.query({active: true, currentWindow: true}, resolve));
+  function prefillSavePasswordForm() {
+    chrome.tabs.query({active: true, currentWindow: true}, function(tabs) {
+      if (!tabs || !tabs[0]) return;
+      
       const currentUrl = tabs[0].url;
       document.getElementById('site-url').value = currentUrl;
       document.getElementById('title').value = tabs[0].title || new URL(currentUrl).hostname;
       
-      if (currentUrl.startsWith('http')) {
-        try {
-          const credentials = await sendMessageToActiveTab({action: "getCredentials"});
-          if (credentials && credentials.username) {
-            document.getElementById('username').value = credentials.username;
+      // Don't try to communicate with content script if not on an HTTP page
+      if (!currentUrl.startsWith('http')) return;
+      
+      // Wrap in try-catch and check for lastError
+      try {
+        chrome.tabs.sendMessage(
+          tabs[0].id, 
+          {action: "getCredentials"}, 
+          function(response) {
+            if (chrome.runtime.lastError) {
+              console.log("Content script communication error:", chrome.runtime.lastError);
+              return; // Just continue without filling credentials
+            }
+            
+            if (response && response.username) {
+              document.getElementById('username').value = response.username;
+            }
+            if (response && response.password) {
+              document.getElementById('site-password').value = response.password;
+            }
           }
-          if (credentials && credentials.password) {
-            document.getElementById('site-password').value = credentials.password;
-          }
-        } catch (error) {
-          console.log("Could not get credentials:", error.message);
-        }
+        );
+      } catch (error) {
+        console.error("Error sending message:", error);
       }
-    } catch (error) {
-      console.error("Error in prefillSavePasswordForm:", error);
-    }
+    });
   }
   
+  /**
+   * Handle save password form submission
+   */
   function handleSavePassword(e) {
     e.preventDefault();
     
     chrome.storage.local.get(['authToken', 'user_id'], function(result) {
+      // Verify we have authentication
       if (!result.authToken || !result.user_id) {
         showStatusMessage('You must be logged in to save passwords', 'error');
         return;
@@ -199,6 +222,7 @@ document.addEventListener('DOMContentLoaded', function() {
       
       showStatusMessage('Saving password...', '');
       
+      // Call API to save password
       fetch(`${API_BASE_URL}/store-password`, {
         method: 'POST',
         headers: {
@@ -227,6 +251,7 @@ document.addEventListener('DOMContentLoaded', function() {
           showStatusMessage('Password saved successfully', 'success');
           savePasswordForm.reset();
           
+          // Refresh the form with current page info
           setTimeout(prefillSavePasswordForm, 1500);
         } else {
           showStatusMessage(data.message || 'Error saving password', 'error');
@@ -235,11 +260,13 @@ document.addEventListener('DOMContentLoaded', function() {
       .catch(error => {
         console.error('Error saving password:', error);
         
+        // Check if error is due to expired token
         if (error.message && (
             error.message.includes('Unauthenticated') || 
             error.message.includes('token') || 
             error.message.includes('expired'))
         ) {
+          // Token might be invalid, force re-login
           handleLogout();
           showStatusMessage('Your session has expired. Please login again.', 'error');
         } else {
@@ -249,6 +276,281 @@ document.addEventListener('DOMContentLoaded', function() {
     });
   }
   
+  /**
+   * Load passwords list from server
+   */
+  function loadPasswordsList() {
+    passwordsContainer.innerHTML = '<div class="loading-message">Loading passwords...</div>';
+    
+    chrome.storage.local.get(['authToken', 'user_id'], function(result) {
+      // Verify we have authentication
+      if (!result.authToken || !result.user_id) {
+        passwordsContainer.innerHTML = '<div class="empty-state">You must be logged in to view passwords</div>';
+        return;
+      }
+      
+      // Call API to get passwords
+      fetch(`${API_BASE_URL}/get-passwords`, {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json',
+          'Accept': 'application/json',
+          'Authorization': `Bearer ${result.authToken}`
+        }
+      })
+      .then(response => {
+        if (!response.ok) {
+          return response.json().then(data => {
+            throw new Error(data.message || 'Failed to load passwords');
+          });
+        }
+        return response.json();
+      })
+      .then(data => {
+        if (data.success && data.passwords && data.passwords.length > 0) {
+          displayPasswordsList(data.passwords);
+        } else {
+          passwordsContainer.innerHTML = '<div class="empty-state">No passwords saved yet</div>';
+        }
+      })
+      .catch(error => {
+        console.error('Error loading passwords:', error);
+        
+        if (error.message && (
+            error.message.includes('Unauthenticated') || 
+            error.message.includes('token') || 
+            error.message.includes('expired'))
+        ) {
+          handleLogout();
+          passwordsContainer.innerHTML = '<div class="empty-state">Your session has expired. Please login again.</div>';
+        } else {
+          passwordsContainer.innerHTML = `<div class="empty-state">Error loading passwords: ${error.message}</div>`;
+        }
+      });
+    });
+  }
+  
+  function displayPasswordsList(passwords) {
+    if (!passwords || passwords.length === 0) {
+      passwordsContainer.innerHTML = '<div class="no-passwords">No passwords saved yet</div>';
+      return;
+    }
+    
+    passwordsContainer.innerHTML = '';
+    
+    passwords.forEach(password => {
+      const item = document.createElement('div');
+      item.className = 'password-item';
+      item.dataset.title = password.title.toLowerCase();
+      item.dataset.url = password.url.toLowerCase();
+      item.dataset.username = password.username.toLowerCase();
+      
+      item.innerHTML = `
+        <div class="password-title">${password.title}</div>
+        <div class="password-url">${password.url}</div>
+        <div class="password-username"><strong>Username:</strong> ${password.username}</div>
+        <div class="password-actions">
+          <button class="password-action-btn copy-username" data-username="${password.username}">Copy Username</button>
+          <button class="password-action-btn copy-password" data-id="${password.id}">Copy Password</button>
+          <button class="password-action-btn fill-password" data-id="${password.id}">Auto Fill</button>
+        </div>
+      `;
+      
+      passwordsContainer.appendChild(item);
+    });
+    
+    // Add event listeners for copy and fill buttons
+    document.querySelectorAll('.copy-username').forEach(button => {
+      button.addEventListener('click', function() {
+        const username = this.getAttribute('data-username');
+        copyToClipboard(username);
+        showStatusMessage('Username copied to clipboard', 'success');
+      });
+    });
+    
+    document.querySelectorAll('.copy-password').forEach(button => {
+      button.addEventListener('click', function() {
+        const passwordId = this.getAttribute('data-id');
+        getAndCopyPassword(passwordId);
+      });
+    });
+    
+    document.querySelectorAll('.fill-password').forEach(button => {
+      button.addEventListener('click', function() {
+        const passwordId = this.getAttribute('data-id');
+        fillPasswordOnPage(passwordId);
+      });
+    });
+  }
+  
+  /**
+   * Filter passwords based on search term
+   */
+  function filterPasswords(searchTerm) {
+    const items = document.querySelectorAll('.password-item');
+    
+    if (items.length === 0) return;
+    
+    if (!searchTerm) {
+      // If search is empty, show all
+      items.forEach(item => item.style.display = 'block');
+      return;
+    }
+    
+    items.forEach(item => {
+      const title = item.dataset.title;
+      const url = item.dataset.url;
+      const username = item.dataset.username;
+      
+      if (
+        title.includes(searchTerm) || 
+        url.includes(searchTerm) || 
+        username.includes(searchTerm)
+      ) {
+        item.style.display = 'block';
+      } else {
+        item.style.display = 'none';
+      }
+    });
+  }
+  
+  /**
+   * Get password from server and copy to clipboard
+   */
+  function getAndCopyPassword(passwordId) {
+    chrome.storage.local.get(['authToken'], function(result) {
+      if (!result.authToken) {
+        showStatusMessage('You must be logged in to copy passwords', 'error');
+        return;
+      }
+      
+      // Call API to get password
+      fetch(`${API_BASE_URL}/get-password/${passwordId}`, {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json',
+          'Accept': 'application/json',
+          'Authorization': `Bearer ${result.authToken}`
+        }
+      })
+      .then(response => {
+        if (!response.ok) {
+          return response.json().then(data => {
+            throw new Error(data.message || 'Failed to get password');
+          });
+        }
+        return response.json();
+      })
+      .then(data => {
+        if (data.success && data.password) {
+          copyToClipboard(data.password);
+          showStatusMessage('Password copied to clipboard', 'success');
+        } else {
+          showStatusMessage('Could not retrieve password', 'error');
+        }
+      })
+      .catch(error => {
+        console.error('Error getting password:', error);
+        showStatusMessage(`Error: ${error.message}`, 'error');
+      });
+    });
+  }
+  
+  /**
+   * Fill password on current page
+   */
+  function fillPasswordOnPage(passwordId) {
+    chrome.storage.local.get(['authToken'], function(result) {
+      if (!result.authToken) {
+        showStatusMessage('You must be logged in to fill passwords', 'error');
+        return;
+      }
+      
+      fetch(`${API_BASE_URL}/get-password/${passwordId}`, {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json',
+          'Accept': 'application/json',
+          'Authorization': `Bearer ${result.authToken}`
+        }
+      })
+      .then(response => {
+        if (!response.ok) {
+          return response.json().then(data => {
+            throw new Error(data.message || 'Failed to get password');
+          });
+        }
+        return response.json();
+      })
+      .then(data => {
+        if (data.success && data.password && data.username) {
+          chrome.tabs.query({active: true, currentWindow: true}, function(tabs) {
+            if (!tabs || !tabs[0]) {
+              showStatusMessage('No active tab found', 'error');
+              return;
+            }
+            
+            try {
+              chrome.tabs.sendMessage(
+                tabs[0].id,
+                {
+                  action: "fillCredentials",
+                  username: data.username,
+                  password: data.password
+                },
+                function(response) {
+                  if (chrome.runtime.lastError) {
+                    console.error("Error:", chrome.runtime.lastError);
+                    showStatusMessage('Cannot fill credentials on this page', 'error');
+                    return;
+                  }
+                  
+                  if (response && response.success) {
+                    showStatusMessage('Credentials filled successfully', 'success');
+                  } else {
+                    showStatusMessage('Could not find username/password fields', 'error');
+                  }
+                }
+              );
+            } catch (error) {
+              console.error("Error sending message:", error);
+              showStatusMessage('Error filling credentials', 'error');
+            }
+          });
+        } else {
+          showStatusMessage('Could not retrieve credentials', 'error');
+        }
+      })
+      .catch(error => {
+        console.error('Error getting credentials:', error);
+        showStatusMessage(`Error: ${error.message}`, 'error');
+      });
+    });
+  }
+  
+  /**
+   * Copy text to clipboard
+   */
+  function copyToClipboard(text) {
+    // Create a temporary element
+    const el = document.createElement('textarea');
+    el.value = text;
+    el.setAttribute('readonly', '');
+    el.style.position = 'absolute';
+    el.style.left = '-9999px';
+    document.body.appendChild(el);
+    
+    // Select and copy
+    el.select();
+    document.execCommand('copy');
+    
+    // Clean up
+    document.body.removeChild(el);
+  }
+  
+  /**
+   * Show status message
+   */
   function showStatusMessage(message, className) {
     passwordStatusMessage.textContent = message;
     passwordStatusMessage.className = 'status-message ' + (className || '');
@@ -265,7 +567,7 @@ document.addEventListener('DOMContentLoaded', function() {
   
   function resetInactivityTimer() {
     clearTimeout(inactivityTimeout);
-    inactivityTimeout = setTimeout(handleLogout, 5 * 60 * 1000);
+    inactivityTimeout = setTimeout(handleLogout, 5 * 60 * 1000); // 5 minutes
   }
   
   document.addEventListener('click', resetInactivityTimer);
